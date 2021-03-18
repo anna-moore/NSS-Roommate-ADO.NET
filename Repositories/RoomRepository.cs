@@ -91,6 +91,44 @@ namespace Roommates.Repositories
         /// </summary>
         public Room GetById(int id)
         {
+            //SqlConnection is a built in class from the Microsoft.Data.SqlClient library
+            //common convention to use conn for the Connection variable 
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT Name, MaxOccupancy FROM Room WHERE Id = @id";
+                    cmd.Parameters.AddWithValue("@id", id);
+                    SqlDataReader reader = cmd.ExecuteReader();
+
+                    Room room = null;
+
+                    // If we only expect a single row back from the database, we don't need a while loop.
+                    if (reader.Read())
+                    {
+                        room = new Room
+                        {
+                            Id = id,
+                            Name = reader.GetString(reader.GetOrdinal("Name")),
+                            MaxOccupancy = reader.GetInt32(reader.GetOrdinal("MaxOccupancy")),
+                        };
+                    }
+
+                    //the connection to the reader must be manually closed 
+                    //unlike the using keyword which closes the connection at the end of {}
+                    reader.Close();
+
+                    return room;
+                }
+            }
+        }
+
+        /// <summary>
+        ///  Returns a single room with the given id.
+        /// </summary>
+        public Room GetById(int id)
+        {
             using (SqlConnection conn = Connection)
             {
                 conn.Open();
