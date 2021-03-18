@@ -66,5 +66,78 @@ namespace Roommates.Repositories
 
             }
         }
+        /// <summary>
+        ///  Add a new chore to the database
+        ///   NOTE: This method sends data to the database,
+        ///   it does not get anything from the database, so there is nothing to return.
+        /// </summary>
+        public void Insert(Chore chore)
+        {
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"INSERT INTO Chore (Name)
+                                          OUTPUT INSERTED.Id
+                                          VALUES (@name)";
+                    cmd.Parameters.AddWithValue("name", chore.Name);
+                    int id = (int)cmd.ExecuteScalar();
+
+                    chore.Id = id;
+                }
+            }
+        }
+
+        public List<Chore> UnassignedChores()
+        {
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT c.Id, c.Name FROM Chore c
+                                        LEFT JOIN RoommateChore rc on c.Id = rc.ChoreId
+                                        WHERE rc.Id IS NULL;";
+
+                    SqlDataReader reader = cmd.ExecuteReader();
+
+                    List<Chore> unassignedChores = new List<Chore>();
+
+                    while (reader.Read())
+                    {
+                        Chore chore = new Chore
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader.GetString(reader.GetOrdinal("Name")),
+                        };
+
+                        unassignedChores.Add(chore);
+                    }
+
+                    reader.Close();
+                    return unassignedChores;
+                }
+            }
+        }
+
+        public void AssignChore(int roommateId, int choreId)
+        {
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"INSERT INTO RoommateChore (RoommateId, ChoreId)
+                                            VALUES (@roommateId, @choreId)";
+                    cmd.Parameters.AddWithValue("@roommateId", roommateId);
+                    cmd.Parameters.AddWithValue("@choreId", choreId);
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+
     }
 }
